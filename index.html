@@ -1,5 +1,5 @@
 Exit code: 0
-Wall time: 1 seconds
+Wall time: 1.4 seconds
 Output:
 <!doctype html>
 <html lang="ko">
@@ -103,7 +103,7 @@ Output:
     function updateBuy(){const ok=selection&&selection.amount>0;buyBtn.disabled=!ok;selectedLabel.textContent=ok?`${selection.name} · ${money(selection.amount)}`:'살 물건이나 금액을 골라 주세요'}
     function showToast(msg){toast.textContent=msg;toast.classList.add('show');clearTimeout(showToast.t);showToast.t=setTimeout(()=>toast.classList.remove('show'),2200)}
     function insufficientAlert(){showToast('잔액이 부족합니다!');try{const AudioCtx=window.AudioContext||window.webkitAudioContext;if(AudioCtx){const ctx=new AudioCtx(),osc=ctx.createOscillator(),gain=ctx.createGain();osc.connect(gain);gain.connect(ctx.destination);osc.frequency.setValueAtTime(620,ctx.currentTime);osc.frequency.setValueAtTime(430,ctx.currentTime+.16);gain.gain.setValueAtTime(.18,ctx.currentTime);gain.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.38);osc.start();osc.stop(ctx.currentTime+.4)}}catch(e){}if('speechSynthesis'in window){speechSynthesis.cancel();const msg=new SpeechSynthesisUtterance('잔액이 부족합니다.');msg.lang='ko-KR';msg.rate=.9;msg.volume=1;speechSynthesis.speak(msg)}}
-    function printHistory(){const rows=current.history.map((h,i)=>`<tr><td>${i+1}</td><td>${escapeHtml(h.item)}</td><td>${h.amount<0?'+':'-'}${money(Math.abs(h.amount))}</td><td>${escapeHtml(h.time)}</td></tr>`).join('');printArea.innerHTML=`<h1>🧾 ${escapeHtml(current.name)} 학생 누적 활동 내역</h1><div class="print-summary"><b>현재 잔액: ${money(current.balance)}</b><span>출력일: ${new Date().toLocaleString('ko-KR')}</span></div><table><thead><tr><th>번호</th><th>내용</th><th>금액</th><th>날짜와 시간</th></tr></thead><tbody>${rows||'<tr><td colspan="4">아직 구매 내역이 없습니다.</td></tr>'}</tbody></table><p class="print-note">우리 반 시장놀이 키오스크에서 출력한 누적 내역입니다.</p>`;window.print()}
+    function printHistory(){const rows=current.history.map((h,i)=>`<tr><td>${i+1}</td><td>${escapeHtml(h.item)}</td><td>${h.amount<0?'+':'-'}${money(Math.abs(h.amount))}</td><td>${escapeHtml(h.time)}</td></tr>`).join('');printArea.innerHTML=`<h1>🧾 ${escapeHtml(current.name)} 학생 구매 영수증</h1><div class="print-summary"><b>현재 잔액: ${money(current.balance)}</b><span>출력일: ${new Date().toLocaleString('ko-KR')}</span></div><table><thead><tr><th>번호</th><th>구입 내역</th><th>금액</th><th>날짜와 시간</th></tr></thead><tbody>${rows||'<tr><td colspan="4">아직 구매 내역이 없습니다.</td></tr>'}</tbody></table><p class="print-note">한내 통합교육 시장놀이 키오스크에서 출력한 구매 영수증입니다.</p>`;window.print()}
     students.addEventListener('click',e=>{const b=e.target.closest('.student');if(b)openStudent(+b.dataset.id)});
     backBtn.onclick=()=>{shopScreen.classList.remove('active');homeScreen.classList.add('active');renderStudents()};
     $$('.category').forEach(b=>b.onclick=()=>{category=b.dataset.cat;selection=null;typed='';renderShop()});
