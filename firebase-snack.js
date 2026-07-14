@@ -29,10 +29,12 @@ export async function recordSnackPurchase(purchase){
     purchaseId:purchase.purchaseId,
     studentId:purchase.studentId,
     studentName:purchase.studentName,
-    menuName:purchase.menuName,
+    booth:'snack',
+    category:purchase.category||'분식',
+    itemName:purchase.itemName||purchase.menuName,
     quantity:purchase.quantity,
-    totalAmount:purchase.totalAmount,
-    paidAt:purchase.paidAt,
+    amount:purchase.amount||purchase.totalAmount,
+    purchasedAt:purchase.purchasedAt||purchase.paidAt,
     status:'paid'
   },{applyLocally:false});
   return result.committed;
@@ -52,7 +54,7 @@ export async function registerWaiting(purchaseId){
       waiting:{...(next.waiting||{}),[purchaseId]:{...purchase,status:'waiting',registeredAt:Date.now()}}
     };
   },{applyLocally:false});
-  return {committed:result.committed,reason};
+  return {committed:result.committed,reason,waiting:values(result.snapshot.val()?.waiting).sort(byTime('registeredAt'))};
 }
 
 export async function completeWaiting(purchaseId){
