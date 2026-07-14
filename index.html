@@ -72,32 +72,21 @@ Output:
   <div class="toast" id="toast" role="status"></div>
   <section id="printArea" aria-hidden="true"></section>
 
-  <script type="module">
-    import { firebaseConfig, defaultClassId } from './firebase-config.js';
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js';
-    import { getDatabase, onValue, ref, runTransaction, serverTimestamp, update } from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-database.js';
-
-    const START=20000;
+  <script>
+    const START=20000, KEY='class-market-kiosk-v2';
     const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s), money=n=>n.toLocaleString('ko-KR')+'원';
     const students=$('#students'), homeScreen=$('#homeScreen'), shopScreen=$('#shopScreen'), studentName=$('#studentName'), balance=$('#balance'), historyList=$('#history'), panel=$('#panel'), selectedLabel=$('#selectedLabel'), buyBtn=$('#buyBtn'), backBtn=$('#backBtn'), bonusBtn=$('#bonusBtn'), printArea=$('#printArea'), bonusDialog=$('#bonusDialog'), bonusStudent=$('#bonusStudent'), bonusAmount=$('#bonusAmount'), giveBonus=$('#giveBonus'), confirmDialog=$('#confirmDialog'), confirmText=$('#confirmText'), confirmBuy=$('#confirmBuy'), teacherBtn=$('#teacherBtn'), teacherDialog=$('#teacherDialog'), nameGrid=$('#nameGrid'), saveNames=$('#saveNames'), resetBtn=$('#resetBtn'), resetDialog=$('#resetDialog'), confirmReset=$('#confirmReset'), toast=$('#toast');
     const studentNames=['조예빈','천지민','안종웅','황정훈','강지엘','이현','김유진','신승훈','권유준','강하엘','오석민','신율','신차빈'];
-    const classParam=new URLSearchParams(location.search).get('classId');
-    const classId=(classParam||defaultClassId||'default').replace(/[^a-zA-Z0-9_-]/g,'').slice(0,40)||'default';
-    const app=initializeApp(firebaseConfig), database=getDatabase(app), classRef=ref(database,`classes/${classId}`);
-    const defaultStudents=Object.fromEntries(studentNames.map((name,id)=>[id,{id,name,balance:START,purchaseCount:0,history:{}}]));
-    let data={students:[]}, current=null, category='snack', selection=null, typed='', ready=false;
-
-    function historyArray(history){return Object.entries(history||{}).map(([id,item])=>({id,...item})).sort((a,b)=>(a.timestamp||0)-(b.timestamp||0))}
-    function normalizeClass(value){const raw=value?.students||{};return {info:value?.info||{},settings:value?.settings||{},students:Object.values(raw).map(s=>({...s,history:historyArray(s.history)})).sort((a,b)=>a.id-b.id)}}
-    async function initializeClass(){
-      await runTransaction(classRef,value=>value||{info:{classId,name:'한내 통합교육 시장놀이',createdAt:Date.now(),updatedAt:Date.now()},settings:{startBalance:START,studentCount:studentNames.length},students:defaultStudents},{applyLocally:false});
-      onValue(classRef,snapshot=>{data=normalizeClass(snapshot.val());ready=true;const currentId=current?.id;current=currentId==null?null:data.students.find(s=>s.id===currentId)||null;renderStudents();if(current)renderShop()},firebaseError);
-    }
-    function firebaseError(error){console.error('[Firebase]',error);showToast('데이터 연결을 확인해 주세요')}
-    function makeHistory(item,amount,type){return {item,amount,type,time:new Date().toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}),timestamp:Date.now()}}
+    const defaults=studentNames.map((name,id)=>({id,name,balance:START,history:[]}));
+    const firebaseStudents=import('./firebase-students.js');
+    const cachedData=load();
+    let data={students:[]}, current=null, category='snack', selection=null, typed='';
+    function load(){try{const d=JSON.parse(localStorage.getItem(KEY));if(d?.students?.length===13)return d}catch(e){}return {students:defaults}}
+    function save(){localStorage.setItem(KEY,JSON.stringify(data))}
+    function applyStudents(nextStudents){const currentId=current?.id;data={students:nextStudents};save();current=currentId==null?null:data.students.find(s=>s.id===currentId)||null;renderStudents();if(current)renderShop()}
     function renderStudents(){students.innerHTML=data.students.map(s=>`<button class="student" data-id="${s.id}">${escapeHtml(s.name)}<span>잔액 ${money(s.balance)}</span></button>`).join('')}
     function escapeHtml(v){const d=document.createElement('div');d.textContent=v;return d.innerHTML}
-    function openStudent(id){if(!ready)return;current=data.students.find(s=>s.id===id);homeScreen.classList.remove('active');shopScreen.classList.add('active');category='snack';selection=null;typed='';renderShop()}
+    function openStudent(id){current=data.students.find(s=>s.id===id);homeScreen.classList.remove('active');shopScreen.classList.add('active');category='snack';selection=null;typed='';renderShop()}
     function renderShop(){studentName.textContent=current.name;balance.textContent=money(current.balance);historyList.innerHTML=current.history.length?current.history.slice().reverse().map(h=>`<li><span>${escapeHtml(h.item)} <small>${escapeHtml(h.time)}</small></span><b${h.amount<0?' style="color:#147b51"':''}>${h.amount<0?'+':'-'}${money(Math.abs(h.amount))}</b></li>`).join(''):'<li class="empty">아직 구입한 물건이 없어요</li>';$$('.category').forEach(b=>b.classList.toggle('active',b.dataset.cat===category));renderPanel();updateBuy()}
     function renderPanel(){
       if(category==='snack') panel.innerHTML=`<div class="choices"><button class="choice" data-name="용가리치킨" data-price="2000"><span class="icon">🦖🍗</span>용가리치킨<br>2,000원</button><button class="choice" data-name="콜팝" data-price="2000"><span class="icon">🥤🍗</span>콜팝<br>2,000원</button><button class="choice" data-name="치즈스틱" data-price="2000"><span class="icon">🧀</span>치즈스틱<br>2,000원</button></div>`;
@@ -122,18 +111,17 @@ Output:
     backBtn.onclick=()=>{shopScreen.classList.remove('active');homeScreen.classList.add('active');renderStudents()};
     $$('.category').forEach(b=>b.onclick=()=>{category=b.dataset.cat;selection=null;typed='';renderShop()});
     buyBtn.onclick=()=>{if(!selection)return;if(selection.amount>current.balance){insufficientAlert();return}confirmText.innerHTML=`<b>${escapeHtml(selection.name)}</b>에서 <b>${money(selection.amount)}</b>을 사용합니다.<br>구입 후 남는 돈은 <b>${money(current.balance-selection.amount)}</b>입니다.`;confirmDialog.showModal()};
-    confirmBuy.onclick=async()=>{const studentId=current.id,item={...selection};confirmBuy.disabled=true;try{const result=await runTransaction(ref(database,`classes/${classId}/students/${studentId}`),student=>{if(!student||item.amount>student.balance)return;const history={...(student.history||{})},historyId=`purchase_${Date.now()}_${Math.random().toString(36).slice(2,9)}`;history[historyId]=makeHistory(item.name,item.amount,'purchase');return {...student,balance:student.balance-item.amount,purchaseCount:(student.purchaseCount||0)+1,history}},{applyLocally:false});if(!result.committed){insufficientAlert();return}confirmDialog.close();showToast('구입 완료! 🎉');selection=null;typed=''}catch(error){firebaseError(error)}finally{confirmBuy.disabled=false}};
+    confirmBuy.onclick=async()=>{const item={...selection},student={id:current.id,name:current.name},booth=category,paidAt=Date.now(),purchaseId=`${booth}_${student.id}_${paidAt}_${Math.random().toString(36).slice(2,10)}`;confirmBuy.disabled=true;try{const {purchaseFromStudent}=await firebaseStudents;const result=await purchaseFromStudent({purchaseId,studentId:student.id,studentName:student.name,menuName:item.name,quantity:1,totalAmount:item.amount,paidAt,booth});if(!result.committed){if(result.reason==='insufficient')insufficientAlert();else showToast('결제를 다시 확인해 주세요');return}applyStudents(result.students);confirmDialog.close();showToast('구입 완료! 🎉');selection=null;typed='';renderShop()}catch(error){console.error('[Firebase students]',error);showToast('데이터 연결을 확인해 주세요')}finally{confirmBuy.disabled=false}};
     document.addEventListener('click',e=>{if(e.target.matches('[data-close]'))e.target.closest('dialog').close()});
     bonusBtn.onclick=()=>{bonusStudent.textContent=current.name;bonusAmount.value='';bonusDialog.showModal();setTimeout(()=>bonusAmount.focus(),50)};
     $$('.print-trigger').forEach(button=>button.onclick=printHistory);
-    giveBonus.onclick=async()=>{const amount=Math.floor(+bonusAmount.value);if(!amount||amount<1){showToast('보너스 금액을 입력해 주세요');return}const studentId=current.id;giveBonus.disabled=true;try{await runTransaction(ref(database,`classes/${classId}/students/${studentId}`),student=>{if(!student)return;const history={...(student.history||{})},historyId=`bonus_${Date.now()}_${Math.random().toString(36).slice(2,9)}`;history[historyId]=makeHistory('🎁 보너스 용돈',-amount,'bonus');return {...student,balance:(student.balance||0)+amount,history}},{applyLocally:false});bonusDialog.close();showToast(`${money(amount)}을 더했어요! 🎉`)}catch(error){firebaseError(error)}finally{giveBonus.disabled=false}};
+    giveBonus.onclick=async()=>{const amount=Math.floor(+bonusAmount.value);if(!amount||amount<1){showToast('보너스 금액을 입력해 주세요');return}giveBonus.disabled=true;try{const {addStudentBonus}=await firebaseStudents,result=await addStudentBonus(current.id,amount);if(!result.committed)throw Error('bonus transaction aborted');applyStudents(result.students);bonusDialog.close();showToast(`${money(amount)}을 더했어요! 🎉`)}catch(error){console.error('[Firebase students]',error);showToast('데이터 연결을 확인해 주세요')}finally{giveBonus.disabled=false}};
     teacherBtn.onclick=()=>{nameGrid.innerHTML=`<div class="setting-head"><span>번호</span><span>학생 이름</span><span>현재 가진 돈</span></div>`+data.students.map((s,i)=>`<div class="student-setting"><span>${i+1}</span><input class="name-input" aria-label="${i+1}번 학생 이름" value="${escapeHtml(s.name)}" maxlength="10"><input class="money-input" aria-label="${escapeHtml(s.name)} 학생 현재 가진 돈" type="number" inputmode="numeric" min="0" step="100" value="${s.balance}"></div>`).join('');teacherDialog.showModal()};
-    saveNames.onclick=async()=>{const changes={};nameGrid.querySelectorAll('.student-setting').forEach((row,i)=>{const id=data.students[i].id;changes[`classes/${classId}/students/${id}/name`]=row.querySelector('.name-input').value.trim()||`학생 ${i+1}`;changes[`classes/${classId}/students/${id}/balance`]=Math.max(0,Math.floor(+row.querySelector('.money-input').value||0))});changes[`classes/${classId}/info/updatedAt`]=serverTimestamp();saveNames.disabled=true;try{await update(ref(database),changes);teacherDialog.close();showToast('이름과 가진 돈을 저장했어요')}catch(error){firebaseError(error)}finally{saveNames.disabled=false}};
+    saveNames.onclick=async()=>{const settings=[...nameGrid.querySelectorAll('.student-setting')].map((row,i)=>({id:data.students[i].id,name:row.querySelector('.name-input').value.trim()||`학생 ${i+1}`,balance:Math.max(0,Math.floor(+row.querySelector('.money-input').value||0))}));saveNames.disabled=true;try{const {saveStudentSettings}=await firebaseStudents,result=await saveStudentSettings(settings);if(!result.committed)throw Error('settings transaction aborted');applyStudents(result.students);teacherDialog.close();showToast('이름과 가진 돈을 저장했어요')}catch(error){console.error('[Firebase students]',error);showToast('데이터 연결을 확인해 주세요')}finally{saveNames.disabled=false}};
     resetBtn.onclick=()=>{teacherDialog.close();resetDialog.showModal()};
-    confirmReset.onclick=async()=>{confirmReset.disabled=true;try{await runTransaction(ref(database,`classes/${classId}/students`),studentsValue=>{const next={...(studentsValue||{})};Object.keys(next).forEach(id=>{next[id]={...next[id],balance:START,purchaseCount:0,history:{}}});return next},{applyLocally:false});resetDialog.close();showToast('모두 처음 상태로 돌아갔어요')}catch(error){firebaseError(error)}finally{confirmReset.disabled=false}};
+    confirmReset.onclick=async()=>{confirmReset.disabled=true;try{const {resetStudentData}=await firebaseStudents,result=await resetStudentData(START);if(!result.committed)throw Error('reset transaction aborted');applyStudents(result.students);resetDialog.close();showToast('모두 처음 상태로 돌아갔어요')}catch(error){console.error('[Firebase students]',error);showToast('데이터 연결을 확인해 주세요')}finally{confirmReset.disabled=false}};
     document.querySelectorAll('dialog').forEach(d=>d.addEventListener('click',e=>{if(e.target===d)d.close()}));
-    onValue(ref(database,'.info/connected'),snapshot=>console.info(`[Firebase] ${snapshot.val()?'connected':'disconnected'} · classId=${classId}`),firebaseError);
-    initializeClass().catch(firebaseError);
+    firebaseStudents.then(async({initializeStudentSource,subscribeStudents})=>{const studentsFromFirebase=await initializeStudentSource(cachedData.students,defaults);applyStudents(studentsFromFirebase);subscribeStudents(applyStudents,error=>{console.error('[Firebase students]',error);showToast('데이터 연결을 확인해 주세요')})}).catch(error=>{console.error('[Firebase students]',error);data=cachedData;renderStudents();showToast('오프라인 백업 데이터를 표시합니다')});
   </script>
 </body>
 </html>
