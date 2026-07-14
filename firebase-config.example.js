@@ -9,4 +9,4 @@ export const firebaseConfig = {
   appId: "YOUR_APP_ID"
 };
 
-export const defaultClassId = "default";
+export const defaultClassId = "HANNAE26";

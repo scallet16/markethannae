@@ -77,7 +77,7 @@ Output:
 
   <script>
     const START=20000, KEY='class-market-kiosk-v2';
-    const routeClassId=new URLSearchParams(location.search).get('classId');document.querySelectorAll('[data-route]').forEach(link=>link.href=link.dataset.route+(routeClassId?`?classId=${encodeURIComponent(routeClassId)}`:''));
+    const routeClassId=new URLSearchParams(location.search).get('classId')||'HANNAE26';document.querySelectorAll('[data-route]').forEach(link=>link.href=link.dataset.route+`?classId=${encodeURIComponent(routeClassId)}`);
     const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s), money=n=>n.toLocaleString('ko-KR')+'원';
     const students=$('#students'), homeScreen=$('#homeScreen'), shopScreen=$('#shopScreen'), studentName=$('#studentName'), balance=$('#balance'), historyList=$('#history'), panel=$('#panel'), selectedLabel=$('#selectedLabel'), buyBtn=$('#buyBtn'), backBtn=$('#backBtn'), bonusBtn=$('#bonusBtn'), printArea=$('#printArea'), bonusDialog=$('#bonusDialog'), bonusStudent=$('#bonusStudent'), bonusAmount=$('#bonusAmount'), giveBonus=$('#giveBonus'), confirmDialog=$('#confirmDialog'), confirmText=$('#confirmText'), confirmBuy=$('#confirmBuy'), teacherBtn=$('#teacherBtn'), teacherDialog=$('#teacherDialog'), nameGrid=$('#nameGrid'), saveNames=$('#saveNames'), resetBtn=$('#resetBtn'), resetDialog=$('#resetDialog'), confirmReset=$('#confirmReset'), toast=$('#toast');
     const studentNames=['조예빈','천지민','안종웅','황정훈','강지엘','이현','김유진','신승훈','권유준','강하엘','오석민','신율','신차빈'];

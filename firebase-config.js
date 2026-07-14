@@ -10,4 +10,4 @@ export const firebaseConfig = {
   measurementId: "G-YPNXQDQHPD"
 };
 
-export const defaultClassId = "default";
+export const defaultClassId = "HANNAE26";
